@@ -10,9 +10,10 @@ export default function LoginButton() {
   async function signIn() {
     setError("");
     setLoading(true);
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin).replace(/\/$/, "");
     const { data, error: signInError } = await createClient().auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${siteUrl}/auth/callback` },
     });
     if (signInError) {
       setError(signInError.message);
