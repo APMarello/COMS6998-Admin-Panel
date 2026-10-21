@@ -11,6 +11,6 @@ A Next.js 14 admin console for the COMS6998 Hello World Supabase project.
 
 ## Vercel setup
 
-Create this directory as a separate Vercel project. Add the two variables from `.env.example` to Vercel's Production, Preview, and Development environments. Add the deployed URL plus `/auth/callback` to Supabase Auth redirect URLs.
+Create this directory as a separate Vercel project. Add the three variables from `.env.example` to Vercel's Production, Preview, and Development environments. Set `NEXT_PUBLIC_SITE_URL` to the stable production URL (`https://coms-6998-admin-panel-iota.vercel.app`), not a Vercel deployment-preview URL. Add that URL plus `/auth/callback` to Supabase Auth redirect URLs.
 
 The app has two independent protections: Next.js middleware redirects unauthenticated or non-superadmin users before rendering routes, and Supabase RLS permits the sensitive database operations only for `profiles.is_superadmin = true`.
