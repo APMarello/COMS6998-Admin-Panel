@@ -4,6 +4,23 @@ import AdminDashboard from "./AdminDashboard";
 
 export const dynamic = "force-dynamic";
 
+async function listBucketImages(supabase, bucket) {
+  const storage = supabase.storage.from(bucket);
+  async function listFolder(prefix = "") {
+    const { data, error } = await storage.list(prefix, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+    if (error) throw error;
+    const nested = await Promise.all((data ?? []).map(async (file) => {
+      const path = `${prefix}${file.name}`;
+      if (!file.metadata) return listFolder(`${path}/`);
+      const { data: signed } = await storage.createSignedUrl(path, 3600);
+      return { ...file, bucket, path, url: signed?.signedUrl ?? storage.getPublicUrl(path).data.publicUrl };
+    }));
+    return nested.flat();
+  }
+  try { return { files: await listFolder(), error: "" }; }
+  catch (error) { return { files: [], error: error.message }; }
+}
+
 export default async function AdminPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -16,10 +33,15 @@ export default async function AdminPage() {
     .maybeSingle();
   if (!profile?.is_superadmin) redirect("/access-denied");
 
-  const [mediaResult, profilesResult, votesResult] = await Promise.all([
+  const [mediaResult, profilesResult, votesResult, promptChainsResult, promptChainStepsResult, llmModelsResult, memePhotos, userMemePhotos] = await Promise.all([
     supabase.from("ai_generations").select("*").order("created_at", { ascending: false }),
     supabase.from("profiles").select("*").order("created_at", { ascending: false }),
     supabase.from("meme_votes").select("*").order("created_at", { ascending: false }),
+    supabase.from("meme_caption_styles").select("*").order("created_at", { ascending: false }),
+    supabase.from("meme_prompt_chain_steps").select("*").order("created_at", { ascending: false }),
+    supabase.from("llm_models").select("*").order("created_at", { ascending: false }),
+    listBucketImages(supabase, "meme_photos"),
+    listBucketImages(supabase, "user_meme_photos"),
   ]);
 
   return <AdminDashboard
@@ -27,5 +49,13 @@ export default async function AdminPage() {
     initialMedia={mediaResult.data ?? []}
     initialProfiles={profilesResult.data ?? []}
     initialVotes={votesResult.data ?? []}
+    initialPromptChains={promptChainsResult.data ?? []}
+    initialPromptChainSteps={promptChainStepsResult.data ?? []}
+    promptChainsError={promptChainsResult.error?.message ?? ""}
+    promptChainStepsError={promptChainStepsResult.error?.message ?? ""}
+    initialLlmModels={llmModelsResult.data ?? []}
+    llmModelsError={llmModelsResult.error?.message ?? ""}
+    initialMemeImages={[...memePhotos.files, ...userMemePhotos.files]}
+    memeImagesError={[memePhotos.error, userMemePhotos.error].filter(Boolean).join(" · ")}
   />;
 }
