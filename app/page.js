@@ -33,13 +33,16 @@ export default async function AdminPage() {
     .maybeSingle();
   if (!profile?.is_superadmin) redirect("/access-denied");
 
-  const [mediaResult, profilesResult, votesResult, promptChainsResult, promptChainStepsResult, llmModelsResult, memePhotos, userMemePhotos] = await Promise.all([
+  const [mediaResult, profilesResult, votesResult, promptChainsResult, promptChainStepsResult, llmModelsResult, generationRequestsResult, termsResult, allowedEmailDomainsResult, memePhotos, userMemePhotos] = await Promise.all([
     supabase.from("ai_generations").select("*").order("created_at", { ascending: false }),
     supabase.from("profiles").select("*").order("created_at", { ascending: false }),
     supabase.from("meme_votes").select("*").order("created_at", { ascending: false }),
     supabase.from("meme_caption_styles").select("*").order("created_at", { ascending: false }),
     supabase.from("meme_prompt_chain_steps").select("*").order("created_at", { ascending: false }),
     supabase.from("llm_models").select("*").order("created_at", { ascending: false }),
+    supabase.from("ai_generation_requests").select("*"),
+    supabase.from("terms").select("*"),
+    supabase.from("allowed_email_domains").select("*"),
     listBucketImages(supabase, "meme_photos"),
     listBucketImages(supabase, "user_meme_photos"),
   ]);
@@ -55,6 +58,12 @@ export default async function AdminPage() {
     promptChainStepsError={promptChainStepsResult.error?.message ?? ""}
     initialLlmModels={llmModelsResult.data ?? []}
     llmModelsError={llmModelsResult.error?.message ?? ""}
+    initialGenerationRequests={generationRequestsResult.data ?? []}
+    generationRequestsError={generationRequestsResult.error?.message ?? ""}
+    initialTerms={termsResult.data ?? []}
+    termsError={termsResult.error?.message ?? ""}
+    initialAllowedEmailDomains={allowedEmailDomainsResult.data ?? []}
+    allowedEmailDomainsError={allowedEmailDomainsResult.error?.message ?? ""}
     initialMemeImages={[...memePhotos.files, ...userMemePhotos.files]}
     memeImagesError={[memePhotos.error, userMemePhotos.error].filter(Boolean).join(" · ")}
   />;
